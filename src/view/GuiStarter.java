@@ -137,7 +137,6 @@ public class GuiStarter extends JFrame {
 		
 		progressList = new JList<String>(listModel);
 		scrollPane.setViewportView(progressList);
-//		scrollPane.add(progressList, "2, 10, 5, 1, default, fill");
 	}
 
 	protected void startSynchronization() {
@@ -152,29 +151,5 @@ public class GuiStarter extends JFrame {
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-
-
-		
 	}
-	
-
 }
-
-
-
-
-
-
- 
- 
- 
- 
- 
- 
- 
-
- 
- 
- 
- 
- 
