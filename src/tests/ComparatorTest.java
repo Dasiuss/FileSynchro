@@ -32,10 +32,10 @@ public class ComparatorTest {
 				times[i] = System.currentTimeMillis() - startTime;
 				System.out.println(times[i]);
 				avg+=times[i];
-				new File("d:/desktop"+i).deleteOnExit();
+				new File("d:/desktop"+i).delete();
 			}
 			avg /= howManyTimes;
-			System.out.println(avg);
+			System.out.println("avg:"+avg);
 			
 			
 		} catch (FileNotFoundException e) {

@@ -5,7 +5,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 
 import javax.swing.DefaultListModel;
@@ -62,6 +61,7 @@ public class GuiStarter extends JFrame {
 			@Override
 			public void println(String str){
 				listModel.addElement(str);
+				progressList.ensureIndexIsVisible(listModel.size()-1);
 			}
 		};
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
