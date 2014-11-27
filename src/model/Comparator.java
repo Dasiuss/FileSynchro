@@ -17,8 +17,8 @@ public class Comparator extends Thread{
 	private PrintStream logger;
 	private int scanned = 0;
 	private int copied = 0;
-	private int copiedBack = 0;
-	private List<String> errorsList;
+	private List<String> errorsList = new LinkedList<String>();
+	private int copiedBack;
 
 	public Comparator(String source, String destination) throws FileNotFoundException{
 		this.sourcePath = source;
@@ -26,7 +26,6 @@ public class Comparator extends Thread{
 
 		this.files = new FilesInputStream(source);
 		logger = System.out;
-		errorsList = new LinkedList<String>();
 	}
 
 	public Comparator(String source, String destination, PrintStream logger) throws FileNotFoundException{
@@ -51,19 +50,24 @@ public class Comparator extends Thread{
 			if (!destFile.exists() || isOlder(destFile, sourceFile)){
 				copied++;
 				try {
-					destFile.getParentFile().mkdirs();
+					destFile.getParentFile().mkdirs();//make folders
 					Files.copy(sourceFile, destFile);
+					destFile.setLastModified(sourceFile.lastModified());
+					logger.println("copied");
 				} catch (IOException e) {
 					errorsList.add(e.getMessage());
+					logger.println("error");
 					continue;
 				}
 			}else if(isOlder(sourceFile , destFile)){
 				copiedBack++;
 				try {
 					Files.copy(destFile, sourceFile);
+					sourceFile.setLastModified(destFile.lastModified());
+					logger.println("copied back");
 				} catch (IOException e) {
 					errorsList.add(e.getMessage());
-					e.printStackTrace();
+					logger.println("error");
 					continue;
 				}
 			}
@@ -74,6 +78,7 @@ public class Comparator extends Thread{
 		}
 		logger.println("scanned: " + scanned);
 		logger.println("copied: " + copied);
+		logger.println("copied back: " + copiedBack);
 		logger.println("errors: " + errorsList.size());
 		logger.println("no more files found");
 		long time = System.currentTimeMillis() - startTime;
