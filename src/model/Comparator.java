@@ -7,7 +7,7 @@ import java.io.PrintStream;
 
 import com.google.common.io.Files;
 
-public class Comparator {
+public class Comparator extends Thread{
 
 	private String sourcePath;
 	private String destPath;
@@ -31,8 +31,8 @@ public class Comparator {
 		this.files = new FilesInputStream(source);
 	}
 
-
-	public void start(){
+	@Override
+	public void run(){
 		long startTime = System.currentTimeMillis();
 		
 		File sourceFile, destFile;
