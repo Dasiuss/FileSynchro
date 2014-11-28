@@ -128,6 +128,7 @@ public class GuiStarter extends JFrame {
 		startButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				startSynchronization();
+//				startButton.setText("Stop");//TODO Thread.interrupt()
 			}
 		});
 		contentPane.add(startButton, "4, 8");
