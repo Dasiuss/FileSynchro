@@ -2,7 +2,7 @@ package view;
 
 import java.io.FileNotFoundException;
 
-import model.*;
+import model.Comparator;
 
 public class Starter {
 
@@ -12,14 +12,11 @@ public class Starter {
 		String destPath = "D:/Desktop6/";
 
 		try {
-			Comparator cp = new Comparator(sourcePath,destPath);
+			Comparator cp = new Comparator(sourcePath, destPath);
 			cp.start();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
-
 
 	}
 }

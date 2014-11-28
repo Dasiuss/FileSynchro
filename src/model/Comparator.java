@@ -9,18 +9,20 @@ import java.util.List;
 
 import com.google.common.io.Files;
 
-public class Comparator extends Thread{
+public class Comparator extends Thread {
 
-	private String sourcePath;
-	private String destPath;
-	private FilesInputStream files;
-	private PrintStream logger;
+	private final String sourcePath;
+	private final String destPath;
+	private final FilesInputStream files;
+	private final PrintStream logger;
 	private int scanned = 0;
 	private int copied = 0;
-	private List<String> errorsList = new LinkedList<String>();
+	private final List<String> errorsList = new LinkedList<String>();
 	private int copiedBack;
+	private long startTime;
+	private boolean isStopped = false;
 
-	public Comparator(String source, String destination) throws FileNotFoundException{
+	public Comparator(String source, String destination) throws FileNotFoundException {
 		this.sourcePath = source;
 		this.destPath = destination;
 
@@ -28,7 +30,7 @@ public class Comparator extends Thread{
 		logger = System.out;
 	}
 
-	public Comparator(String source, String destination, PrintStream logger) throws FileNotFoundException{
+	public Comparator(String source, String destination, PrintStream logger) throws FileNotFoundException {
 		this.sourcePath = source;
 		this.destPath = destination;
 		this.logger = logger;
@@ -36,21 +38,24 @@ public class Comparator extends Thread{
 	}
 
 	@Override
-	public void run(){
-		long startTime = System.currentTimeMillis();
-		
+	public void run() {
+		startTime = System.currentTimeMillis();
+
 		File sourceFile, destFile;
 		int pathLen = sourcePath.length();
 		String relPath;
-		while ((sourceFile = files.read())!=null){
+		// while ((sourceFile = files.read()) != null && !isInterrupted()) {
+		while ((sourceFile = files.read()) != null && !isStopped) {
+
+			Thread.yield();
 			scanned++;
-			logger.println("Processing: "+sourceFile.getAbsolutePath());
+			logger.println("Processing: " + sourceFile.getAbsolutePath());
 			relPath = sourceFile.getAbsolutePath().substring(pathLen);
 			destFile = new File(destPath + relPath);
-			if (!destFile.exists() || isOlder(destFile, sourceFile)){
+			if (!destFile.exists() || isOlder(destFile, sourceFile)) {
 				copied++;
 				try {
-					destFile.getParentFile().mkdirs();//make folders
+					destFile.getParentFile().mkdirs();// make folders
 					Files.copy(sourceFile, destFile);
 					destFile.setLastModified(sourceFile.lastModified());
 					logger.println("copied");
@@ -59,7 +64,7 @@ public class Comparator extends Thread{
 					logger.println("error");
 					continue;
 				}
-			}else if(isOlder(sourceFile , destFile)){
+			} else if (isOlder(sourceFile, destFile)) {
 				copiedBack++;
 				try {
 					Files.copy(destFile, sourceFile);
@@ -72,8 +77,16 @@ public class Comparator extends Thread{
 				}
 			}
 		}
+		logResults();
+
+	}
+
+	/**
+	 * @param startTime
+	 */
+	private void logResults() {
 		logger.println("E R R O R S :");
-		for (String error : errorsList){
+		for (String error : errorsList) {
 			logger.println(error);
 		}
 		logger.println("scanned: " + scanned);
@@ -82,13 +95,15 @@ public class Comparator extends Thread{
 		logger.println("errors: " + errorsList.size());
 		logger.println("no more files found");
 		long time = System.currentTimeMillis() - startTime;
-		logger.println("That took "+ time/60000 +" min (" + time + "ms)");
-
+		logger.println("That took " + time / 60000 + " min (" + time + "ms)");
 	}
-
-
 
 	private boolean isOlder(File file, File than) {
 		return file.lastModified() < than.lastModified();
 	}
+
+	public void stopMe() {
+		this.isStopped = true;
+	}
+
 }
