@@ -44,7 +44,6 @@ public class Comparator extends Thread {
 		File sourceFile, destFile;
 		int pathLen = sourcePath.length();
 		String relPath;
-		// while ((sourceFile = files.read()) != null && !isInterrupted()) {
 		while ((sourceFile = files.read()) != null && !isStopped) {
 
 			Thread.yield();
@@ -55,9 +54,7 @@ public class Comparator extends Thread {
 			if (!destFile.exists() || isOlder(destFile, sourceFile)) {
 				copied++;
 				try {
-					destFile.getParentFile().mkdirs();// make folders
-					Files.copy(sourceFile, destFile);
-					destFile.setLastModified(sourceFile.lastModified());
+					copyFile(sourceFile, destFile);
 					logger.println("copied");
 				} catch (IOException e) {
 					errorsList.add(e.getMessage());
@@ -67,8 +64,7 @@ public class Comparator extends Thread {
 			} else if (isOlder(sourceFile, destFile)) {
 				copiedBack++;
 				try {
-					Files.copy(destFile, sourceFile);
-					sourceFile.setLastModified(destFile.lastModified());
+					copyFile(destFile, sourceFile);
 					logger.println("copied back");
 				} catch (IOException e) {
 					errorsList.add(e.getMessage());
@@ -78,16 +74,25 @@ public class Comparator extends Thread {
 			}
 		}
 		logResults();
-
 	}
 
 	/**
-	 * @param startTime
+	 * @param sourceFile
+	 * @param destFile
+	 * @throws IOException
 	 */
+	private void copyFile(File sourceFile, File destFile) throws IOException {
+		destFile.getParentFile().mkdirs();// make folders
+		Files.copy(sourceFile, destFile);
+		destFile.setLastModified(sourceFile.lastModified());
+	}
+
 	private void logResults() {
-		logger.println("E R R O R S :");
-		for (String error : errorsList) {
-			logger.println(error);
+		if (!errorsList.isEmpty()) {
+			logger.println("E R R O R S :");
+			for (String error : errorsList) {
+				logger.println(error);
+			}
 		}
 		logger.println("scanned: " + scanned);
 		logger.println("copied: " + copied);
