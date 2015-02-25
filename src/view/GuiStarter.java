@@ -5,17 +5,24 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.util.Scanner;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 
 import model.Comparator;
@@ -38,6 +45,13 @@ public class GuiStarter extends JFrame {
 	private final PrintStream logger;
 	private final JList<String> progressList;
 	private Comparator cp;
+	private JCheckBox noLogsChkBox;
+	private JLabel progressLabel;
+	private int lines = 0;
+	private Timer timer;
+	protected int duration;
+	private JLabel timeLabel;
+	private JProgressBar progressBar;
 
 	/**
 	 * Launch the application.
@@ -62,6 +76,14 @@ public class GuiStarter extends JFrame {
 		logger = new PrintStream(System.out) {
 			@Override
 			public void println(String str) {
+				if (str.contains("Files to scan: ")) {
+					progressBar.setMaximum(Integer.parseInt(str.substring(str.indexOf(": ") + 2)));
+					listModel.addElement(str);
+					return;
+				}
+				progressLabel.setText(String.valueOf(++lines));
+				progressBar.setValue(lines);
+				if (noLogsChkBox.isSelected()) return;
 				listModel.addElement(str);
 				progressList.ensureIndexIsVisible(listModel.size() - 1);
 			}
@@ -73,11 +95,12 @@ public class GuiStarter extends JFrame {
 		setContentPane(contentPane);
 		contentPane.setLayout(new FormLayout(new ColumnSpec[] { FormFactory.RELATED_GAP_COLSPEC,
 				FormFactory.MIN_COLSPEC, FormFactory.RELATED_GAP_COLSPEC, ColumnSpec.decode("default:grow"),
-				FormFactory.RELATED_GAP_COLSPEC, FormFactory.DEFAULT_COLSPEC, }, new RowSpec[] {
-				FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.RELATED_GAP_COLSPEC, FormFactory.DEFAULT_COLSPEC, FormFactory.RELATED_GAP_COLSPEC,
+				FormFactory.BUTTON_COLSPEC, }, new RowSpec[] { FormFactory.RELATED_GAP_ROWSPEC,
 				FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC,
-				FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC,
-				RowSpec.decode("default:grow"), }));
+				FormFactory.RELATED_GAP_ROWSPEC, FormFactory.MIN_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC,
+				FormFactory.DEFAULT_ROWSPEC, FormFactory.RELATED_GAP_ROWSPEC, FormFactory.DEFAULT_ROWSPEC,
+				FormFactory.RELATED_GAP_ROWSPEC, RowSpec.decode("default:grow"), }));
 
 		JLabel sourceLabel = new JLabel("Folder Ÿród³owy:");
 		contentPane.add(sourceLabel, "2, 2, left, default");
@@ -98,7 +121,7 @@ public class GuiStarter extends JFrame {
 						.getSelectedFile().toString() : sourceTextField.getText());
 			}
 		});
-		contentPane.add(chooseSource, "6, 2");
+		contentPane.add(chooseSource, "6, 2, 3, 1");
 
 		JLabel destLabel = new JLabel("Folder docelowy");
 		contentPane.add(destLabel, "2, 4, left, default");
@@ -119,7 +142,7 @@ public class GuiStarter extends JFrame {
 						.getSelectedFile().toString() : destTextField.getText());
 			}
 		});
-		contentPane.add(chooseDest, "6, 4");
+		contentPane.add(chooseDest, "6, 4, 3, 1");
 
 		final JButton startButton = new JButton("Synchronizuj");
 		startButton.addActionListener(new ActionListener() {
@@ -135,21 +158,41 @@ public class GuiStarter extends JFrame {
 				}
 			}
 		});
+
+		noLogsChkBox = new JCheckBox("no logs");
+		contentPane.add(noLogsChkBox, "2, 8");
 		contentPane.add(startButton, "4, 8");
 
+		timeLabel = new JLabel("Time");
+		timeLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+		contentPane.add(timeLabel, "6, 8");
+
+		progressLabel = new JLabel("progress");
+		progressLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+		contentPane.add(progressLabel, "8, 8, right, default");
+
+		progressBar = new JProgressBar();
+		contentPane.add(progressBar, "2, 10, 7, 1");
+
 		JScrollPane scrollPane = new JScrollPane();
-		contentPane.add(scrollPane, "2, 10, 5, 1, default, fill");
+		contentPane.add(scrollPane, "2, 12, 7, 1, default, fill");
 
 		progressList = new JList<String>(listModel);
 		scrollPane.setViewportView(progressList);
+		restorePaths();
 	}
 
 	protected void stopSynchronization() {
+		timer.stop();
 		cp.stopMe();
 	}
 
 	protected void startSynchronization() {
+		setTimer();
+
+		lines = 0;
 		listModel.clear();
+		savePaths();
 
 		String sourcePath = sourceTextField.getText();
 		String destPath = destTextField.getText();
@@ -160,6 +203,54 @@ public class GuiStarter extends JFrame {
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * 
+	 */
+	private void setTimer() {
+		duration = 0;
+		timeLabel.setText("0min");
+		timer = new Timer(60000, new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				timeLabel.setText(String.valueOf(duration++) + "min");
+			}
+		});
+	}
+
+	private void savePaths() {
+		PrintWriter pw = null;
+		File lastJob = new File("lastJob");
+		if (lastJob.exists()) lastJob.delete();
+		try {
+			lastJob.createNewFile();
+			pw = new PrintWriter(lastJob);
+			pw.println(sourceTextField.getText());
+			pw.println(destTextField.getText());
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (pw != null) pw.close();
+		}
+
+	}
+
+	private void restorePaths() {
+		File lastJob = new File("lastJob");
+		if (lastJob.exists()) {
+			Scanner sc = null;
+			try {
+				lastJob.createNewFile();
+				sc = new Scanner(lastJob);
+				sourceTextField.setText(sc.nextLine());
+				destTextField.setText(sc.nextLine());
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (sc != null) sc.close();
+			}
 		}
 	}
 }

@@ -41,6 +41,8 @@ public class Comparator extends Thread {
 	public void run() {
 		startTime = System.currentTimeMillis();
 
+		logger.println("Files to scan: " + files.getCount());
+
 		File sourceFile, destFile;
 		int pathLen = sourcePath.length();
 		String relPath;
@@ -48,14 +50,13 @@ public class Comparator extends Thread {
 
 			Thread.yield();
 			scanned++;
-			logger.println("Processing: " + sourceFile.getAbsolutePath());
 			relPath = sourceFile.getAbsolutePath().substring(pathLen);
 			destFile = new File(destPath + relPath);
 			if (!destFile.exists() || isOlder(destFile, sourceFile)) {
 				copied++;
 				try {
 					copyFile(sourceFile, destFile);
-					logger.println("copied");
+					logger.println("--> : " + sourceFile.getAbsolutePath());
 				} catch (IOException e) {
 					errorsList.add(e.getMessage());
 					logger.println("error");
@@ -65,12 +66,14 @@ public class Comparator extends Thread {
 				copiedBack++;
 				try {
 					copyFile(destFile, sourceFile);
-					logger.println("copied back");
+					logger.println("<-- : " + sourceFile.getAbsolutePath());
 				} catch (IOException e) {
 					errorsList.add(e.getMessage());
 					logger.println("error");
 					continue;
 				}
+			} else {
+				logger.println("== : " + sourceFile.getAbsolutePath());
 			}
 		}
 		logResults();

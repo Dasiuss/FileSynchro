@@ -25,10 +25,18 @@ public class FilesInputStream {
 
 	public FilesInputStream(File dir) throws FileNotFoundException {
 		file = dir;
-		if (!file.isDirectory())
-			throw new FileNotFoundException();
+		if (!file.isDirectory()) throw new FileNotFoundException();
 		dirsToScan.add(file);
 		addIgnoredFiles();
+	}
+
+	/**
+	 * resets scanner to starting position
+	 */
+	public void reset() {
+		dirsToScan.clear();
+		foundFiles.clear();
+		dirsToScan.add(file);
 	}
 
 	private void addIgnoredFiles() {
@@ -43,8 +51,7 @@ public class FilesInputStream {
 	 */
 	public File read() {
 		while (foundFiles.isEmpty()) {
-			if (dirsToScan.isEmpty())
-				return null;
+			if (dirsToScan.isEmpty()) return null;
 			refill();
 		}
 		file = foundFiles.get(0);
@@ -64,13 +71,27 @@ public class FilesInputStream {
 			if (f.isDirectory()) {
 				dirsToScan.add(f);
 			} else if (f.isFile()) {
-				if (!ignoredFiles.contains(f.getName()))
-					foundFiles.add(f);
+				if (!ignoredFiles.contains(f.getName())) foundFiles.add(f);
 			}
 		}
 	}
 
 	public String getPath() throws IOException {
 		return file.getCanonicalPath();
+	}
+
+	public int getCount() {
+		return getCount(file);
+	}
+
+	public int getCount(File dir) {
+		int count = 0;
+		for (File file : dir.listFiles()) {
+			if (file.isDirectory()) {
+				count += getCount(file);
+			}
+			if (!ignoredFiles.contains(file.getName())) count++;
+		}
+		return count;
 	}
 }
